@@ -226,9 +226,11 @@ static int8_t CUSTOM_HID_OutEvent_FS(uint8_t event_idx, uint8_t state)
 			break;
 
 		case 2:
+			setSineOffset((uint16_t)((inputData[1]<<8)|inputData[2]));
 			break;
 
 		case 3:
+			setSineAmplitude((uint16_t)((inputData[1]<<8)|inputData[2]));
 			break;
 	}
 

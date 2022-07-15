@@ -56,8 +56,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void calcHalfSineWave(uint16_t amplitude, uint16_t offset);
 void DcDcControl(uint8_t is_enabled);
+void setSineAmplitude(uint16_t ampl);
+void setSineOffset(uint16_t offset);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
