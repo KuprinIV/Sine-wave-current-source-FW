@@ -66,7 +66,7 @@
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "APS"
-#define USBD_PID_FS     22354
+#define USBD_PID_FS     22355
 #define USBD_PRODUCT_STRING_FS     "Sine current source"
 #define USBD_CONFIGURATION_STRING_FS     "Winusb"
 #define USBD_INTERFACE_STRING_FS     "Control"

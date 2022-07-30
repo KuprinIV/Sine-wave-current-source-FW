@@ -224,18 +224,7 @@ USBD_StatusTypeDef  USBD_RunTestMode(USBD_HandleTypeDef  *pdev)
 
 USBD_StatusTypeDef USBD_SetClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx)
 {
-  USBD_StatusTypeDef ret = USBD_FAIL;
-
-  if (pdev->pClass != NULL)
-  {
-    /* Set configuration  and Start the Class*/
-    if (pdev->pClass->Init(pdev, cfgidx) == 0U)
-    {
-      ret = USBD_OK;
-    }
-  }
-
-  return ret;
+  return USBD_OK;
 }
 
 /**
@@ -248,8 +237,6 @@ USBD_StatusTypeDef USBD_SetClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx
 USBD_StatusTypeDef USBD_ClrClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx)
 {
   /* Clear configuration  and De-initialize the Class process*/
-  pdev->pClass->DeInit(pdev, cfgidx);
-
   return USBD_OK;
 }
 
