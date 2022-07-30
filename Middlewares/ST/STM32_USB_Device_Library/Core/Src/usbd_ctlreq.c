@@ -44,7 +44,12 @@
 /** @defgroup USBD_REQ_Private_Defines
   * @{
   */
-
+#define	WINUSB_REQ			0x55
+#define REQ_TYPE_MASK       0x60
+#define REQ_TYPE_STANDART   0x00
+#define REQ_TYPE_VENDOR     0x40
+#define GETCOMPDESC			(uint16_t)0x0004
+#define GETEXTPROPSDESC		(uint16_t)0x0005
 /**
   * @}
   */
@@ -71,6 +76,9 @@
 /** @defgroup USBD_REQ_Private_FunctionPrototypes
   * @{
   */
+static void USBD_GetWinUSBDescriptor (USBD_HandleTypeDef *pdev,
+							   USBD_SetupReqTypedef *req, uint16_t wValve);
+
 static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev,
                                USBD_SetupReqTypedef *req);
 
@@ -115,6 +123,12 @@ USBD_StatusTypeDef  USBD_StdDevReq(USBD_HandleTypeDef *pdev,
                                    USBD_SetupReqTypedef *req)
 {
   USBD_StatusTypeDef ret = USBD_OK;
+
+  if((req->bRequest & 0xFF) == (uint8_t)WINUSB_REQ)
+  {
+	USBD_GetWinUSBDescriptor(pdev, req, req->wIndex);
+	return ret;
+  }
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
@@ -394,6 +408,39 @@ USBD_StatusTypeDef  USBD_StdEPReq(USBD_HandleTypeDef *pdev,
   return ret;
 }
 
+/**
+There is my function, it send WIN USB descriptor
+@brief  USBD_GetWinUSBDescriptor
+*         Handle Get WINUSB Driver Descriptor requests
+* @param  pdev: device instance
+* @retval status
+
+*/
+static void USBD_GetWinUSBDescriptor (USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req, uint16_t wIndex)
+{
+	uint8_t *pbuf;
+	uint16_t len;
+
+	if (wIndex==GETCOMPDESC)
+	{
+		pbuf = pdev->pDesc->CompIDDescriptor(&len);
+	}
+	else if (wIndex == GETEXTPROPSDESC)
+	{
+		pbuf = pdev->pDesc->ExtPropsDescriptor(&len);
+	}
+	else if (wIndex == 0xEE) {
+		pbuf = pdev->pDesc->MSFTStringDescriptor (&len);
+	}
+	else
+	{
+		USBD_CtlError(pdev , req);
+		return;
+	}
+
+	len = MIN(len , req->wLength);
+	USBD_CtlSendData (pdev, pbuf, len);
+}
 
 /**
 * @brief  USBD_GetDescriptor
@@ -515,6 +562,10 @@ static void USBD_GetDescriptor(USBD_HandleTypeDef *pdev,
             err++;
           }
           break;
+
+        case USBD_IDX_MSFT_STR:
+		  pbuf = pdev->pDesc->MSFTStringDescriptor(&len);
+		  break;
 
         default:
 #if (USBD_SUPPORT_USER_STRING_DESC == 1U)
