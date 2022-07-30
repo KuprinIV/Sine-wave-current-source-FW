@@ -24,6 +24,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
+#include "sine_cs.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -96,10 +97,11 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
 	0x09, 0x01,                    // USAGE (Vendor Usage 1)
 	0xa1, 0x01,                    // COLLECTION (Application)
 
-	// CS control commands  (bytes: 0 - report ID (0x01), 1 - 0x00 - disable, 0x01 - enable)
+	// CS control commands  (bytes: 0 - report ID (0x01); 1 - 0x10 - disable, 0x01 - enable; 2 - 0x00 - exit from calibration mode,
+	// 0x01 - enter into calibration mode; 3 - 0x01 - save calibration data)
 	0x09, 0x01,                    //   USAGE (Vendor Usage 1)
 	0x85, 0x01,               	   //   REPORT_ID (1)
-	0x95, 0x01,                    //   REPORT_COUNT (9)
+	0x95, 0x03,                    //   REPORT_COUNT (3)
 	0x75, 0x08,                    //   REPORT_SIZE (8)
 	0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)
 	0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
@@ -114,7 +116,7 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
 	0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
 	0x91, 0x82,                    //   OUTPUT (Data,Var,Abs)
 
-	// set current amplitude (bytes: 0 - report ID (0x03), 1,2 - amplitude in discrets)
+	// set current raw amplitude (bytes: 0 - report ID (0x03), 1,2 - amplitude in discrets)
 	0x09, 0x01,                    //   USAGE (Vendor Usage 1)
 	0x85, 0x03,               	   //   REPORT_ID (3)
 	0x95, 0x02,                    //   REPORT_COUNT (2)
@@ -123,9 +125,18 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
 	0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
 	0x91, 0x82,                    //   OUTPUT (Data,Var,Abs)
 
-	// send current amplitude value (reserved)
+	// set current amplitude (bytes: 0 - report ID (0x03), 1 - amplitude in 0,1A discrets (example: 0x0A - 1,0 A))
 	0x09, 0x01,                    //   USAGE (Vendor Usage 1)
 	0x85, 0x04,               	   //   REPORT_ID (4)
+	0x95, 0x02,                    //   REPORT_COUNT (2)
+	0x75, 0x08,                    //   REPORT_SIZE (8)
+	0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)
+	0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+	0x91, 0x82,                    //   OUTPUT (Data,Var,Abs)
+
+	// send current amplitude value (reserved)
+	0x09, 0x01,                    //   USAGE (Vendor Usage 1)
+	0x85, 0x05,               	   //   REPORT_ID (5)
 	0x95, 0x02,                    //   REPORT_COUNT (2)
 	0x75, 0x08,                    //   REPORT_SIZE (8)
 	0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)
@@ -216,21 +227,39 @@ static int8_t CUSTOM_HID_OutEvent_FS(uint8_t event_idx, uint8_t state)
 {
   /* USER CODE BEGIN 6 */
 	uint8_t inputData[USBD_CUSTOMHID_OUTREPORT_BUF_SIZE]= {0};
+	uint8_t powerState = 0;
 	USBD_CUSTOM_HID_HandleTypeDef  *hhid = (USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData;
 	memcpy(inputData, hhid->Report_buf, USBD_CUSTOMHID_OUTREPORT_BUF_SIZE);
 
 	switch(event_idx)
 	{
 		case 1:
-			DcDcControl(inputData[1] & 0x01);
+			// power control
+			if(inputData[1])
+			{
+				if(inputData[1] == 0x10) powerState = 0;
+				else if(inputData[1] == 0x01) powerState = 1;
+				sineCS_drv->PowerCtrl(powerState);
+			}
+			// calibration mode control
+			sineCS_drv->CalibrationModeCtrl(inputData[2] & 0x01);
+			// save calibration data command
+			if(inputData[3] & 0x01)
+			{
+				sineCS_drv->SaveCalibrationData();
+			}
 			break;
 
 		case 2:
-			setSineOffset((uint16_t)((inputData[1]<<8)|inputData[2]));
+			sineCS_drv->SetRawOffset((uint16_t)((inputData[1]<<8)|inputData[2]));
 			break;
 
 		case 3:
-			setSineAmplitude((uint16_t)((inputData[1]<<8)|inputData[2]));
+			sineCS_drv->SetRawAmplitude((uint16_t)((inputData[1]<<8)|inputData[2]));
+			break;
+
+		case 4:
+			sineCS_drv->SetAmplitude(inputData[1]);
 			break;
 	}
 

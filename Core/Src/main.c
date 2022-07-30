@@ -23,12 +23,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <math.h>
+#include "sine_cs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define SINE_SAMPLES_NUM 500
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -48,12 +48,8 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim21;
 
 /* USER CODE BEGIN PV */
-uint16_t sineHalfPeriod[SINE_SAMPLES_NUM] = {0};
-uint16_t tempBuf[SINE_SAMPLES_NUM] = {0};
-volatile uint8_t isFullSineParamsChanged = 0;
-volatile uint8_t isHalfSineParamsChanged = 0;
-volatile uint16_t sineAmplitude = 124;
-volatile uint16_t sineOffset = 372;
+extern uint16_t sineHalfPeriod[SINE_SAMPLES_NUM];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,7 +60,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM21_Init(void);
 static void MX_DMA_Init(void);
 /* USER CODE BEGIN PFP */
-static void calcHalfSineWave(uint16_t amplitude, uint16_t offset);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -106,17 +102,13 @@ int main(void)
   MX_TIM21_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  // calc sine wave for DAC
-  calcHalfSineWave(sineAmplitude, sineOffset);
+  sineCS_drv->Init();
   // init DAC DMA
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)sineHalfPeriod, 500, DAC_ALIGN_12B_R);
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)sineHalfPeriod, SINE_SAMPLES_NUM, DAC_ALIGN_12B_R);
   // start timers
   HAL_TIM_Base_Start(&htim2); // DAC conversion timer, master
   HAL_TIM_OC_Start_IT(&htim21, TIM_CHANNEL_1);
   HAL_TIM_OC_Start_IT(&htim21, TIM_CHANNEL_2);
-
-  // LED indication
-  LED_GPIO_Port->ODR |= LED_Pin;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -404,61 +396,6 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 		htim->Instance->CCMR1 ^= (TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_0);
 	}
-}
-
-void DcDcControl(uint8_t is_enabled)
-{
-	if(is_enabled)
-	{
-		DC_EN_GPIO_Port->ODR |= DC_EN_Pin;
-	}
-	else
-	{
-		DC_EN_GPIO_Port->ODR &= ~DC_EN_Pin;
-	}
-}
-
-void setSineAmplitude(uint16_t ampl)
-{
-	sineAmplitude = ampl;
-	calcHalfSineWave(sineAmplitude, sineOffset);
-}
-
-void setSineOffset(uint16_t offset)
-{
-	sineOffset = offset;
-	calcHalfSineWave(sineAmplitude, sineOffset);
-}
-
-// update DAC data buffer after changing sine wave
-void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef* hdac)
-{
-	uint16_t bufferSize = sizeof(sineHalfPeriod)/2;
-	if(isHalfSineParamsChanged)
-	{
-		isHalfSineParamsChanged = 0;
-		memcpy(sineHalfPeriod, tempBuf, bufferSize);
-	}
-}
-
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef* hdac)
-{
-	uint16_t bufferSize = sizeof(sineHalfPeriod)/2;
-	if(isFullSineParamsChanged)
-	{
-		isFullSineParamsChanged = 0;
-		memcpy(sineHalfPeriod+SINE_SAMPLES_NUM/2, tempBuf+SINE_SAMPLES_NUM/2, bufferSize);
-	}
-}
-
-static void calcHalfSineWave(uint16_t amplitude, uint16_t offset)
-{
-  for(uint16_t i = 0; i < SINE_SAMPLES_NUM; i++)
-  {
-	  tempBuf[i] = (uint16_t)((float)amplitude*sin(M_PI*(float)i/SINE_SAMPLES_NUM)+(float)offset);
-  }
-  isHalfSineParamsChanged = 1;
-  isFullSineParamsChanged = 1;
 }
 /* USER CODE END 4 */
 
