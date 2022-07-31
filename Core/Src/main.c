@@ -102,6 +102,7 @@ int main(void)
   MX_TIM21_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+  // init sine CS driver
   sineCS_drv->Init();
   // init DAC DMA
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)sineHalfPeriod, SINE_SAMPLES_NUM, DAC_ALIGN_12B_R);
@@ -170,7 +171,7 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief DAC Initialization Function
+  * @brief DAC Initialization Function. DAC triggers by TIM2 with sample frequency 50 kHz
   * @param None
   * @retval None
   */
@@ -208,7 +209,7 @@ static void MX_DAC_Init(void)
 }
 
 /**
-  * @brief TIM2 Initialization Function
+  * @brief TIM2 Initialization Function. This timer triggers DAC conversion and TIM21. Frequency 50 kHz
   * @param None
   * @retval None
   */
@@ -253,7 +254,8 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief TIM21 Initialization Function
+  * @brief TIM21 Initialization Function. Timer clocked by TIM2 and synchronized with DAC. Channels 1 and 2 controls polarity
+  * commutator circuit with 50 Hz frequency and 20 us dead-time
   * @param None
   * @retval None
   */
@@ -370,6 +372,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief  Realize dead-time function with general-purpose timer
+  * @param  htim: active timer handle
+  * @retval None
+  */
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)

@@ -179,44 +179,45 @@ static uint8_t  USBD_CONTROL_Setup(USBD_HandleTypeDef *pdev,
   USBD_CONTROL_HandleTypeDef *hcs = (USBD_CONTROL_HandleTypeDef *)pdev->pClassData;
   uint16_t status_info = 0U;
   uint8_t ret = USBD_OK;
-  uint8_t powerState = 0;
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
     case USB_REQ_TYPE_VENDOR :
+    	// handle vendor requests with sine CS control commands
       switch (req->bRequest)
       {
         case CS_CONTROL_POWER_CTRL:
-		  if(req->wValue)
-		  {
-			  if(req->wValue == 0x0010) powerState = 0;
-			  else if(req->wValue == 0x0001) powerState = 1;
-			  sineCS_drv->PowerCtrl(powerState);
-		  }
+		  sineCS_drv->PowerCtrl((uint8_t)(req->wValue & 0x01));
+		  USBD_CtlSendStatus(pdev);
           break;
 
         case CS_CONTROL_CALIB_MODE_CTRL:
           sineCS_drv->CalibrationModeCtrl((uint8_t)(req->wValue & 0x01));
+          USBD_CtlSendStatus(pdev);
           break;
 
         case CS_CONTROL_SAVE_CALIB_DATA:
         	sineCS_drv->SaveCalibrationData();
+        	USBD_CtlSendStatus(pdev);
           break;
 
         case CS_CONTROL_SET_RAW_OFFSET:
         	sineCS_drv->SetRawOffset(req->wValue);
+        	USBD_CtlSendStatus(pdev);
           break;
 
         case CS_CONTROL_SET_RAW_AMPL:
         	sineCS_drv->SetRawAmplitude(req->wValue);
+        	USBD_CtlSendStatus(pdev);
           break;
 
         case CS_CONTROL_SET_AMPL:
         	sineCS_drv->SetAmplitude((uint8_t)(req->wValue & 0xFF));
+        	USBD_CtlSendStatus(pdev);
           break;
 
         default:
-          // catch 0x55 req caused i dont know why
+          // skip 0x55 request
           if (req->bmRequest == 0xC0 && req->bRequest == 0x55) return ret;
           USBD_CtlError(pdev, req);
           ret = USBD_FAIL;
