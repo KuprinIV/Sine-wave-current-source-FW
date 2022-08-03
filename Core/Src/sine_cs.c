@@ -77,7 +77,7 @@ static void powerControl(uint8_t is_enabled)
 		// LED indication
 		LED_GPIO_Port->ODR &= ~LED_Pin;
 		// set DAC output to zero
-		calcHalfSineWave(sineAmplitude, sineOffset);
+		calcHalfSineWave(0, 0);
 	}
 }
 
