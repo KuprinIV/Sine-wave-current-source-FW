@@ -65,14 +65,84 @@
 
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "STMicroelectronics"
-#define USBD_PID_FS     22354
-#define USBD_PRODUCT_STRING_FS     "STM32 Custom Human interface"
-#define USBD_CONFIGURATION_STRING_FS     "Custom HID Config"
-#define USBD_INTERFACE_STRING_FS     "Custom HID Interface"
+#define USBD_MANUFACTURER_STRING     "APS"
+#define USBD_PID_FS     22355
+#define USBD_PRODUCT_STRING_FS     "Sine current source"
+#define USBD_CONFIGURATION_STRING_FS     "Winusb"
+#define USBD_INTERFACE_STRING_FS     "Control"
+
+#define SCREEN_SIZ_USBD_FS_MSFT100	 	0x12
+#define SCREEN_SIZ_COMPIDDESCRIPTOR		0x28
+#define SCREEN_SIZ_EXTPROPSDESCRIPTOR	142
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
+uint8_t CompIDDescriptor[SCREEN_SIZ_COMPIDDESCRIPTOR] =
+{
+	0x28, 0x00, 0x00, 0x00,
+	0x00, 0x01,
+	0x04, 0x00,
+	0x01,
+	0,0,0,0,0,0,0,
+	0,
+	1,
+	'W','I','N','U','S','B','\0','\0',
+	0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,
+};
 
+uint8_t ExtPropsDescriptor[SCREEN_SIZ_EXTPROPSDESCRIPTOR] =
+{
+	SCREEN_SIZ_EXTPROPSDESCRIPTOR, 0x00, 0x00, 0x00,
+	0x00, 0x01,
+	0x05, 0x00,
+	0x01, 0x00,
+
+	0x84, 0x00, 0x00, 0x00, // Size of the property section
+	0x01, 0x00, 0x00, 0x00, // REG_MULTI_SZ
+	0x28, 0x00,             // Property name length (40 bytes)
+
+	  'D',  0,
+	  'e',  0,
+	  'v',  0,
+	  'i',  0,
+	  'c',  0,
+	  'e',  0,
+	  'I',  0,
+	  'n',  0,
+	  't',  0,
+	  'e',  0,
+	  'r',  0,
+	  'f',  0,
+	  'a',  0,
+	  'c',  0,
+	  'e',  0,
+	  'G',  0,
+	  'U',  0,
+	  'I',  0,
+	  'D',  0,
+	   0,   0,
+
+	0x4e, 0x00, 0x00, 0x00,
+	//{52F5619D-D8A4-42C4-B2F9-D19171C660A6}\0\0 (80 bytes)
+  '{',0,'5',0,'2',0,'F',0,'5',0,'6',0,'1',0,'9',0,'D',0,'-',0,'D',0,'8',0,'A',0,'4',0,'-',0,'4',0,'2',0,'C',0,'4',0,'-',0,'B',0,'2',0,'F',0,'9',0,'-',0,'D',0,'1',0,'9',0,'1',0,'7',0,'1',0,'C',0,'6',0,'6',0,'0',0,'A',0,'6',0,'}',0,'\0',0
+  //{E488380F-E249-4b22-9848-D203EE085313}
+  //'{',0,'E',0,'4',0,'8',0,'8',0,'3',0,'8',0,'0',0,'F',0,'-',0,'E',0,'2',0,'4',0,'9',0,'-',0,'4',0,'b',0,'2',0,'2',0,'-',0,'9',0,'8',0,'4',0,'8',0,'-',0,'D',0,'2',0,'0',0,'3',0,'E',0,'E',0,'0',0,'8',0,'5',0,'3',0,'1',0,'3',0,'}',0,'\0',0,'\0',0,
+};
+
+uint8_t FS_MSFT100StrDesc[SCREEN_SIZ_USBD_FS_MSFT100] =
+{
+	SCREEN_SIZ_USBD_FS_MSFT100, // bLength
+    USB_DESC_TYPE_STRING,
+	'M', 0,
+	'S', 0,
+	'F', 0,
+	'T', 0,
+	'1', 0,
+	'0', 0,
+	'0', 0,
+	0x55, // Vendor code
+	0x00  // bPad
+};
 /* USER CODE END PRIVATE_DEFINES */
 
 /**
@@ -120,6 +190,9 @@ uint8_t * USBD_FS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
 uint8_t * USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t * USBD_FS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t * USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
+uint8_t * USBD_FS_CompIDDescriptor(uint16_t *length);
+uint8_t * USBD_FS_ExtPropsDescriptor(uint16_t *length);
+uint8_t * USBD_FS_MSFT100StrDesc(uint16_t *length);
 
 /**
   * @}
@@ -139,6 +212,9 @@ USBD_DescriptorsTypeDef FS_Desc =
 , USBD_FS_SerialStrDescriptor
 , USBD_FS_ConfigStrDescriptor
 , USBD_FS_InterfaceStrDescriptor
+, USBD_FS_CompIDDescriptor
+, USBD_FS_ExtPropsDescriptor
+, USBD_FS_MSFT100StrDesc
 };
 
 #if defined ( __ICCARM__ ) /* IAR Compiler */
@@ -328,6 +404,24 @@ uint8_t * USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *leng
     USBD_GetString((uint8_t *)USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
+}
+
+uint8_t* USBD_FS_CompIDDescriptor(uint16_t *length)
+{
+	*length = sizeof(CompIDDescriptor);
+	return CompIDDescriptor;
+}
+
+uint8_t* USBD_FS_ExtPropsDescriptor(uint16_t *length)
+{
+	*length = sizeof(ExtPropsDescriptor);
+	return ExtPropsDescriptor;
+}
+
+uint8_t* USBD_FS_MSFT100StrDesc(uint16_t *length)
+{
+	*length = sizeof(FS_MSFT100StrDesc);
+	return FS_MSFT100StrDesc;
 }
 
 /**
